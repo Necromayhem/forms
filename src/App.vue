@@ -5,10 +5,14 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
+import { useToast } from 'primevue/usetoast'
 import { useUserStore } from './stores/userStore'
-import type { Tag } from './types'
+import type { Tag, User } from './types'
 
 const userStore = useUserStore()
+const toast = useToast()
 
 const getTagsString = (tags: Tag[]): string => {
 	return tags.map((tag: Tag) => tag.text).join('; ')
@@ -19,9 +23,30 @@ const handleTagsUpdate = (id: number, value?: string) => {
 		userStore.updateTags(id, value)
 	}
 }
+
+const passwordVisible = ref<Record<number, boolean>>({})
+
+const togglePasswordVisibility = (id: number) => {
+	passwordVisible.value[id] = !passwordVisible.value[id]
+}
+
+const handleValidation = (user: User) => {
+	const isValid = userStore.validateUser(user)
+	if (!isValid) {
+		toast.add({
+			severity: 'error',
+			summary: 'Ошибка валидации',
+			detail: 'Пожалуйста, проверьте введенные данные',
+			life: 3000,
+		})
+	} else {
+		userStore.saveToLocalStorage()
+	}
+}
 </script>
 
 <template>
+	<Toast position="top-right" />
 	<div class="header">
 		<h2>Учётные записи</h2>
 		<Button icon="pi pi-plus" size="small" @click="userStore.addUser" />
@@ -42,18 +67,12 @@ const handleTagsUpdate = (id: number, value?: string) => {
 							@update:modelValue="
 								(value: string | undefined) => handleTagsUpdate(data.id, value)
 							"
-							@blur="userStore.validateUser(data)"
+							@blur="handleValidation(data)"
 							placeholder="Введите метки через ;"
 							:class="{
 								'p-invalid': data.tags.some((tag: Tag) => tag.text.length > 50),
 							}"
 						/>
-						<small
-							v-if="data.tags.some((tag: Tag) => tag.text.length > 50)"
-							class="p-error"
-						>
-							Максимум 50 символов на метку
-						</small>
 					</div>
 				</template>
 			</Column>
@@ -67,7 +86,7 @@ const handleTagsUpdate = (id: number, value?: string) => {
 							:options="userStore.recordTypes"
 							optionLabel="label"
 							optionValue="value"
-							@change="userStore.updateUser(data.id, { type: data.type })"
+							@change="handleValidation(data)"
 							placeholder="Выберите тип"
 							:class="{ 'p-invalid': !data.type }"
 						/>
@@ -80,13 +99,10 @@ const handleTagsUpdate = (id: number, value?: string) => {
 					<div class="input-container">
 						<InputText
 							v-model="data.login"
-							@blur="userStore.validateUser(data)"
+							@blur="handleValidation(data)"
 							placeholder="Введите логин"
 							:class="{ 'p-invalid': data.errors.login }"
 						/>
-						<small v-if="data.errors.login" class="p-error">{{
-							data.errors.login
-						}}</small>
 					</div>
 				</template>
 			</Column>
@@ -94,22 +110,31 @@ const handleTagsUpdate = (id: number, value?: string) => {
 			<Column header="Пароль" style="width: 20%">
 				<template #body="{ data }">
 					<div class="input-container">
+						<InputGroup v-if="data.type !== 'LDAP'">
+							<InputText
+								v-model="data.password"
+								:type="passwordVisible[data.id] ? 'text' : 'password'"
+								@blur="handleValidation(data)"
+								placeholder="Введите пароль"
+								:class="{ 'p-invalid': data.errors.password }"
+							/>
+							<InputGroupAddon>
+								<Button
+									:icon="
+										passwordVisible[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'
+									"
+									@click="togglePasswordVisibility(data.id)"
+									class="p-button-text"
+								/>
+							</InputGroupAddon>
+						</InputGroup>
 						<InputText
-							v-model="data.password"
+							v-else
 							type="password"
-							@blur="userStore.validateUser(data)"
-							:placeholder="
-								data.type === 'LDAP' ? 'Пароль не требуется' : 'Введите пароль'
-							"
-							:class="{
-								'p-invalid': data.errors.password,
-								'disabled-password': data.type === 'LDAP',
-							}"
-							:disabled="data.type === 'LDAP'"
+							placeholder="Пароль не требуется"
+							class="disabled-password"
+							disabled
 						/>
-						<small v-if="data.errors.password" class="p-error">
-							{{ data.errors.password }}
-						</small>
 					</div>
 				</template>
 			</Column>
@@ -163,11 +188,6 @@ const handleTagsUpdate = (id: number, value?: string) => {
 .p-dropdown {
 	width: 100% !important;
 	margin-bottom: 0.25rem;
-}
-
-.p-error {
-	color: #f44336;
-	font-size: 0.875rem;
 }
 
 .p-invalid {

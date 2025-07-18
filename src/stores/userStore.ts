@@ -78,5 +78,6 @@ export const useUserStore = defineStore('users', () => {
 		updateUser,
 		updateTags,
 		validateUser,
+		saveToLocalStorage,
 	}
 })
