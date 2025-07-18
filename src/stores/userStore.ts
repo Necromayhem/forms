@@ -10,15 +10,18 @@ export const useUserStore = defineStore('users', () => {
 	])
 
 	function saveToLocalStorage() {
-		localStorage.setItem('users', JSON.stringify(users.value))
+		const validUsers = users.value.filter(user => {
+			return validateUser(user, false)
+		})
+		localStorage.setItem('users', JSON.stringify(validUsers))
 	}
 
-	function validateUser(user: User): boolean {
-		user.errors = {}
+	function validateUser(user: User, saveErrors = true): boolean {
+		const errors: User['errors'] = {}
 		let isValid = true
 
 		if (!user.login || user.login.length > 100) {
-			user.errors.login = 'Логин обязателен (макс. 100 символов)'
+			errors.login = 'Логин обязателен (макс. 100 символов)'
 			isValid = false
 		}
 
@@ -26,8 +29,12 @@ export const useUserStore = defineStore('users', () => {
 			user.type === 'Локальная' &&
 			(!user.password || user.password.length > 100)
 		) {
-			user.errors.password = 'Пароль обязателен (макс. 100 символов)'
+			errors.password = 'Пароль обязателен (макс. 100 символов)'
 			isValid = false
+		}
+
+		if (saveErrors) {
+			user.errors = errors
 		}
 
 		return isValid
@@ -43,7 +50,6 @@ export const useUserStore = defineStore('users', () => {
 			errors: {},
 		}
 		users.value.push(newUser)
-		saveToLocalStorage()
 	}
 
 	function deleteUser(id: number) {
@@ -55,7 +61,6 @@ export const useUserStore = defineStore('users', () => {
 		const index = users.value.findIndex(user => user.id === id)
 		if (index !== -1) {
 			users.value[index] = { ...users.value[index], ...updatedData }
-			validateUser(users.value[index])
 			saveToLocalStorage()
 		}
 	}

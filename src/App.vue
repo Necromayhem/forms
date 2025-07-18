@@ -39,9 +39,10 @@ const handleValidation = (user: User) => {
 			detail: 'Пожалуйста, проверьте введенные данные',
 			life: 3000,
 		})
-	} else {
-		userStore.saveToLocalStorage()
+		return false
 	}
+	userStore.saveToLocalStorage()
+	return true
 }
 </script>
 
@@ -49,7 +50,7 @@ const handleValidation = (user: User) => {
 	<Toast position="top-right" />
 	<div class="header">
 		<h2>Учётные записи</h2>
-		<Button icon="pi pi-plus" size="small" @click="userStore.addUser" />
+		<Button icon="pi pi-plus" size="large" @click="userStore.addUser" />
 	</div>
 
 	<div v-if="userStore.users.length > 0" class="table-container">
@@ -86,7 +87,7 @@ const handleValidation = (user: User) => {
 							:options="userStore.recordTypes"
 							optionLabel="label"
 							optionValue="value"
-							@change="handleValidation(data)"
+							@change="userStore.saveToLocalStorage"
 							placeholder="Выберите тип"
 							:class="{ 'p-invalid': !data.type }"
 						/>
