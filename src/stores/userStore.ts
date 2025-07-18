@@ -37,7 +37,7 @@ export const useUserStore = defineStore('users', () => {
 		const newUser: User = {
 			id: Date.now(),
 			tags: [],
-			type: '',
+			type: 'LDAP',
 			login: '',
 			password: null,
 			errors: {},
