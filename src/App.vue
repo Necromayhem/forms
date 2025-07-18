@@ -68,7 +68,6 @@ const handleValidation = (user: User) => {
 							@update:modelValue="
 								(value: string | undefined) => handleTagsUpdate(data.id, value)
 							"
-							@blur="handleValidation(data)"
 							placeholder="Введите метки через ;"
 							:class="{
 								'p-invalid': data.tags.some((tag: Tag) => tag.text.length > 50),
